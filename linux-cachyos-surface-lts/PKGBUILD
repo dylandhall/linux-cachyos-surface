@@ -147,8 +147,28 @@ else
 fi
 
 pkgbase="linux-$_pkgsuffix"
+#
+# Long Term Support kernel. Currently pinned to the Linux 6.12.x LTS line
+# from kernel.org (supported by the upstream LTS maintainers through
+# approximately December 2026). This deliberately differs from upstream
+# CachyOS's own `linux-cachyos-lts` PKGBUILD, which now redefines "lts" to
+# mean "previous CachyOS stable kernel" and uses the pre-baked tarball
+# strategy. We keep this on a real kernel.org LTS line so Surface owners
+# get the longest possible maintenance window per major bump.
+#
+# Source strategy: stock kernel.org tarball + cachyos's still-extant
+# `${_major}/all/0001-cachyos-base-all.patch` meta-patch. The `/all/`
+# folder was retired upstream from 6.18 onward, so when this PKGBUILD is
+# eventually bumped past 6.12 the maintainer will need to either:
+#   (a) follow upstream CachyOS and switch to the pre-baked tarball at
+#       https://github.com/CachyOS/linux/releases (see the sibling
+#       linux-cachyos-surface PKGBUILD for the exact pattern: introduce a
+#       `_tagrel`, change `_srcname` to cachyos-${_major}.${_minor}-${_tagrel},
+#       change the kernel source URL to that release, and drop the
+#       `0001-cachyos-base-all.patch` source line), or
+#   (b) stay on kernel.org if /all/ still exists for the new LTS line.
 _major=6.12
-_minor=64
+_minor=90
 #_minorc=$((_minor+1))
 #_rcver=rc8
 pkgver=${_major}.${_minor}
@@ -157,10 +177,21 @@ _stable=${_major}.${_minor}
 #_stablerc=${_major}-${_rcver}
 _srcname=linux-${_stable}
 #_srcname=linux-${_major}
+# Template for switching to the CachyOS pre-baked tarball when /all/ is
+# retired for this kernel series (see comment above):
+#_tagrel=1
+#_srcname=cachyos-${_major}.${_minor}-${_tagrel}
 pkgdesc='Linux BORE + Cachy Sauce Kernel by CachyOS with other patches and improvements - Long Term Service'
 pkgrel=1
 _kernver="$pkgver-$pkgrel"
 _kernuname="${pkgver}-${_pkgsuffix}"
+
+# Git ref (tag, branch, or commit SHA) of the official linux-surface
+# repository to check out for Microsoft Surface patches and the per-version
+# config fragment. Upstream's `arch_lts-*` tag series stopped at 4.19, so
+# this LTS PKGBUILD tracks `master` by default. Pin to a specific commit
+# SHA for reproducible builds.
+_surface_ref="master"
 arch=('x86_64')
 url="https://github.com/jonpetersathan/linux-cachyos-surface"
 license=('GPL-2.0-only')
@@ -179,30 +210,24 @@ makedepends=(
 )
 
 _patchsource="https://raw.githubusercontent.com/cachyos/kernel-patches/master/${_major}"
-_surfacepatchsource="https://raw.githubusercontent.com/jonpetersathan/linux-cachyos-surface-patches/refs/heads/master/patches/${_major}"
+_surface_repo_url="https://github.com/linux-surface/linux-surface.git"
+_surface_raw_url="https://raw.githubusercontent.com/linux-surface/linux-surface/${_surface_ref}"
 _nv_ver=590.48.01
 _nv_pkg="NVIDIA-Linux-x86_64-${_nv_ver}"
 _nv_open_pkg="NVIDIA-kernel-module-source-${_nv_ver}"
+makedepends+=(git)
+# NOTE: source layout still uses kernel.org tarball + cachyos's `/all/`
+# meta-patch. When this is bumped past 6.12 LTS and `/all/` no longer
+# exists for the new kernel series, replace the first source URL with the
+# pre-baked CachyOS tarball and drop the cachyos-base-all.patch line (see
+# the comment block near _major / _minor above for the full template).
 source=(
     "https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/${_srcname}.tar.xz"
     "config"
-    "https://raw.githubusercontent.com/jonpetersathan/linux-cachyos-surface-patches/refs/heads/master/configs/surface-${_major}.config"
+    "${_surface_raw_url}/configs/surface-${_major}.config"
     "auto-cpu-optimization.sh"
     "${_patchsource}/all/0001-cachyos-base-all.patch"
-    "${_surfacepatchsource}/0001-secureboot.patch"
-    "${_surfacepatchsource}/0002-surface3-oemb.patch"
-    "${_surfacepatchsource}/0003-mwifiex.patch"
-    "${_surfacepatchsource}/0004-ath10k.patch"
-    "${_surfacepatchsource}/0005-ipts.patch"
-    "${_surfacepatchsource}/0006-ithc.patch"
-    "${_surfacepatchsource}/0007-surface-sam-over-hid.patch"
-    "${_surfacepatchsource}/0008-surface-button.patch"
-    "${_surfacepatchsource}/0009-surface-typecover.patch"
-    "${_surfacepatchsource}/0010-surface-shutdown.patch"
-    "${_surfacepatchsource}/0011-surface-gpe.patch"
-    "${_surfacepatchsource}/0012-cameras.patch"
-    "${_surfacepatchsource}/0013-amd-gpio.patch"
-    "${_surfacepatchsource}/0014-rtc.patch")
+    "linux-surface::git+${_surface_repo_url}")
 
 # LLVM makedepends
 if _is_lto_kernel; then
@@ -259,6 +284,9 @@ prepare() {
     echo "-$pkgrel" > localversion.10-pkgrel
     echo "${pkgbase#linux}" > localversion.20-pkgname
 
+    echo "Checking out linux-surface ref: ${_surface_ref}..."
+    git -C "$srcdir/linux-surface" checkout --quiet "$_surface_ref"
+
     local src
     for src in "${source[@]}"; do
         src="${src%%::*}"
@@ -269,6 +297,16 @@ prepare() {
         [[ $src = *.patch ]] || continue
         echo "Applying patch $src..."
         patch -Np1 < "../$src"
+    done
+
+    local _surface_patches_dir="$srcdir/linux-surface/patches/${_major}"
+    if [ ! -d "$_surface_patches_dir" ]; then
+        _die "linux-surface patches directory not found: $_surface_patches_dir (is _major=${_major} supported upstream at ref ${_surface_ref}?)"
+    fi
+    local p
+    for p in "$_surface_patches_dir"/*.patch; do
+        echo "Applying surface patch ${p##*/}..."
+        patch -Np1 < "$p"
     done
 
     echo "Setting config..."
@@ -701,8 +739,9 @@ for _p in "${pkgname[@]}"; do
     }"
 done
 
-b2sums=('8f24d8efe88f1b5e6fde5fba6833798e5b3d5aa8bbdb7e031ac0f8333f7ffb5fa19a9b0d028641729971cb63e147c6cd6d79b5cd97fb9851471d3efe832119e5'
+b2sums=('SKIP'
         'a3c64898a65d8f3dbc97456cd89d99bf639b86bc924a2a5faa85fb709566200ed2ac12bac8b394b3b5a42dd2c2ac1aeb1d662e48c3b12c535754f39ea74f94e0'
-        '390c7b80608e9017f752b18660cc18ad1ec69f0aab41a2edfcfc26621dcccf5c7051c9d233d9bdf1df63d5f1589549ee0ba3a30e43148509d27dafa9102c19ab'
+        'SKIP'
         '14d0cc9c68af30adbd159af81227ab93b25bc654b8720e054782d092d9ffcadf30f57b54ba1b2b198b6cd0e6f985ead279a2f7398ca959b1f0620f5f66222c83'
-        '05a83239cada205fe45a9550eabf19c566786e84152761d37e96f433cd764f917f5cd95bbbac181e1444251363260bf92ca4c078729faaba464a1d535d77d3fd')
+        'SKIP'
+        'SKIP')
