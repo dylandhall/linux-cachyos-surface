@@ -168,7 +168,7 @@ pkgbase="linux-$_pkgsuffix"
 
 pkgbase="$pkgbase"
 _major=6.19
-_minor=12
+_minor=8
 #_minorc=$((_minor+1))
 #_rcver=rc8
 pkgver=${_major}.${_minor}
@@ -180,7 +180,7 @@ _stable=${_major}.${_minor}
 # https://github.com/CachyOS/linux/releases (e.g. cachyos-6.19.12-2). This
 # is INDEPENDENT of this PKGBUILD's `pkgrel`. Bump when CachyOS re-cuts a
 # release for the same kernel version.
-_tagrel=2
+_tagrel=1
 
 # Top-level directory inside the CachyOS pre-patched kernel tarball, and
 # also the release tag name. The CachyOS/linux release tarball is a vanilla
@@ -200,8 +200,9 @@ _kernuname="${pkgver}-${_pkgsuffix}"
 # Defaults to ${pkgver} so a single bump works when linux-surface and
 # CachyOS publish the same kernel point release; override when they
 # diverge (e.g. cachyos publishes 6.19.12 while linux-surface tops out at arch-6.19.8-3).
-# _surface_ver="${pgkver}"
-_surface_ver=6.19.8
+# _surface_ver=6.19.8
+_surface_ver="${pgkver}"
+
 
 # Upstream linux-surface packaging revision. Tracks the trailing suffix on
 # upstream tags like `arch-6.19.8-3` (https://github.com/linux-surface/linux-surface/tags)
