@@ -201,7 +201,7 @@ _kernuname="${pkgver}-${_pkgsuffix}"
 # CachyOS publish the same kernel point release; override when they
 # diverge (e.g. cachyos publishes 6.19.12 while linux-surface tops out at arch-6.19.8-3).
 # _surface_ver=6.19.8
-_surface_ver="${pgkver}"
+_surface_ver="${pkgver}"
 
 
 # Upstream linux-surface packaging revision. Tracks the trailing suffix on
