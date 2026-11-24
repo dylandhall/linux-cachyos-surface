@@ -1,6 +1,6 @@
 pkgbase = linux-cachyos-surface
 	pkgdesc = Linux EEVDF + LTO + AutoFDO + Propeller Cachy Sauce Kernel by CachyOS with other patches and improvements.
-	pkgver = 7.2.11
+	pkgver = 7.3.6
 	pkgrel = 1
 	url = https://github.com/jonpetersathan/linux-cachyos-surface
 	arch = x86_64
@@ -28,16 +28,17 @@ pkgbase = linux-cachyos-surface
 	makedepends = clang
 	makedepends = llvm
 	makedepends = lld
+	makedepends = pahole>=1:1.32-2
 	options = !strip
 	options = !debug
 	options = !lto
-	source = https://github.com/CachyOS/linux/releases/download/cachyos-7.2.11-1/cachyos-7.2.11-1.tar.gz
+	source = https://github.com/CachyOS/linux/releases/download/cachyos-7.3.6-1/cachyos-7.3.6-1.tar.gz
 	source = config
-	source = https://raw.githubusercontent.com/linux-surface/linux-surface/arch-7.2.11-1/configs/surface-7.2.config
+	source = https://raw.githubusercontent.com/linux-surface/linux-surface/debian-7.3.6-1/configs/surface-7.3.config
 	source = linux-surface::git+https://github.com/linux-surface/linux-surface.git
-	source = https://raw.githubusercontent.com/cachyos/kernel-patches/master/7.2/misc/dkms-clang.patch
+	source = https://raw.githubusercontent.com/cachyos/kernel-patches/master/7.3/misc/dkms-clang.patch
 	b2sums = SKIP
-	b2sums = 21343697f5f1647aadbdec8a4aa477b10622e5ae04fa07fcf6f9bab67dece7180872676bdc49a90de5d273c2c13127c5812a7ca67dbd9edce3e26e8c38d358d1
+	b2sums = e6fc382da6b317f14b0ffe1e22e120ea8c9efa03a95ee58360765629b7b81f89e98f04349134232215ae0ff8aa10c2200a7551a3c3aeb1e5d1fb1e4c5673f0e9
 	b2sums = SKIP
 	b2sums = SKIP
 
@@ -57,7 +58,7 @@ pkgname = linux-cachyos-surface
 	provides = NTSYNC-MODULE
 	provides = VHBA-MODULE
 	provides = ADIOS-MODULE
-	provides = linux-cachyos-lto=7.2.11-1
+	provides = linux-cachyos-lto=7.3.6-1
 	replaces = linux-cachyos-lto
 
 pkgname = linux-cachyos-surface-headers
@@ -75,6 +76,7 @@ pkgname = linux-cachyos-surface-headers
 	depends = clang
 	depends = llvm
 	depends = lld
+	depends = pahole>=1:1.32-2
 	provides = LINUX-HEADERS
-	provides = linux-cachyos-lto-headers=7.2.11-1
+	provides = linux-cachyos-lto-headers=7.3.6-1
 	replaces = linux-cachyos-lto-headers
